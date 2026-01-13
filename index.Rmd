@@ -1,0 +1,69 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Soaif Habib"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit, it is possible to collect a large amount of data about personal activity.  
+The goal of this project is to predict the manner in which the exercise was performed using accelerometer data.
+
+The outcome variable is `classe`.
+
+## Loading Libraries and Data
+
+library(caret)
+library(randomForest)
+
+set.seed(123)
+
+trainUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testUrl  <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+training <- read.csv(trainUrl)
+testing  <- read.csv(testUrl)
+
+## Data Cleaning
+
+# Remove columns with more than 95% NA values
+na_cols <- sapply(training, function(x) mean(is.na(x))) > 0.95
+training <- training[, !na_cols]
+testing  <- testing[, !na_cols]
+
+# Remove non-predictive identifier columns
+training <- training[, -(1:7)]
+testing  <- testing[, -(1:7)]
+
+## Training and Validation Split
+
+inTrain <- createDataPartition(training$classe, p = 0.7, list = FALSE)
+trainSet <- training[inTrain, ]
+validSet <- training[-inTrain, ]
+
+## Model Training
+
+ctrl <- trainControl(method = "cv", number = 5)
+
+rf_model <- train(
+  classe ~ .,
+  data = trainSet,
+  method = "rf",
+  trControl = ctrl
+)
+
+## Model Evaluation
+
+rf_pred <- predict(rf_model, validSet)
+confusionMatrix(rf_pred, validSet$classe)
+
+## Final Predictions (Test Data)
+
+final_predictions <- predict(rf_model, testing)
+final_predictions
+
+## Conclusion
+
+Random Forest produced excellent performance with low estimated out-of-sample error.
+This model was therefore selected to generate the final predictions.
